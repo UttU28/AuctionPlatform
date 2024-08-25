@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/styles.css">
     <title>Auction</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="text">Welcome {{ user }}</div>
     <div class="text">EMAIL {{ userEmail }}</div>
-    <div class="text">CREDITS {{ credits }}</div>
-    <div class="text">TOKENS {{ tokens }}</div>
-
     
     <div class="walletDiv">
         <div class="credits"><div class="text">CREDITS: </div><div class="value">{{ credits }}</div></div>
@@ -19,7 +17,89 @@
     </div>
 
     <div class="container">
-        <div class="allBids"></div>
+        <div class="allBids">
+            {% for bid in allBids %}
+                <div class="bidItem" id="bid-{{ bid.id }}">
+                    <h2>{{ bid.title }}</h2>
+                    <p>{{ bid.description }}</p>
+                    <p>Base Bid: ${{ bid.baseBid }}</p>
+                    <p>Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
+                    <input type="number" id="bidInput-{{ bid.id }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
+                    <button onclick="placeBid('{{ bid.id }}')">Place Bid</button>
+                </div>
+            {% endfor %}
+        </div>
     </div>
+
+    <script>
+        var lastLoadTimestamp = {{ lastLoad }};
+
+        function placeBid(bidId) {
+            var bidInput = document.getElementById('bidInput-' + bidId);
+            var bidAmount = parseInt(bidInput.value, 10);
+
+            if (isNaN(bidAmount) || bidAmount <= 0) {
+                alert('Please enter a valid bid amount.');
+                return;
+            }
+
+            $.ajax({
+                url: '/placeBid',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    bidId: bidId,
+                    amount: bidAmount
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Bid placed successfully!');
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred. Please try again.');
+                }
+            });
+        }
+
+        function checkForNewBids() {
+            $.ajax({
+                url: '/checkNewBids',
+                method: 'GET',
+                data: {
+                    timestamp: lastLoadTimestamp
+                },
+                success: function(response) {
+                    if (response.newBids.length > 0) {
+                        // Handle new bids, e.g., append them to the top
+                        var container = $('.allBids');
+                        response.newBids.forEach(function(bid) {
+                            var bidHtml = `
+                                <div class="bidItem" id="bid-${bid.id}">
+                                    <h2>${bid.title}</h2>
+                                    <p>${bid.description}</p>
+                                    <p>Base Bid: $${bid.baseBid}</p>
+                                    <p>Highest Bid: $${bid.highestBid || 'No bids yet'}</p>
+                                    <input type="number" id="bidInput-${bid.id}" placeholder="Enter your bid" min="${(bid.highestBid || bid.baseBid) + 1}">
+                                    <button onclick="placeBid('${bid.id}')">Place Bid</button>
+                                </div>
+                            `;
+                            container.prepend(bidHtml);
+                        });
+                        lastLoadTimestamp = response.newTimestamp;
+                    }
+                },
+                error: function() {
+                    console.error('Failed to check for new bids.');
+                }
+            });
+        }
+
+        // Check for new bids every 10 seconds
+        setInterval(checkForNewBids, 10000);
+    </script>
 </body>
 </html>
