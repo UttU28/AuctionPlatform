@@ -16,10 +16,10 @@ bcrypt = Bcrypt(app)
 @app.route('/')
 def index():
     if 'user' in session:
-        session['credits'], session['tokens'] = getUserCreditsTokens(session['email'])
+        session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['email'])
         allBids = loadAllBids()
         timeStamp = allBids[0]["startTime"]
-        return render_template("index.html", user=session['user'], userEmail=session['email'], credits=session['credits'], tokens=session['tokens'], allBids=allBids, lastLoad=timeStamp)
+        return render_template("index.html", user=session['user'], userEmail=session['email'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp)
     
     return redirect(url_for('login'))
 
@@ -45,8 +45,12 @@ def placeBid():
     if bidAmount > userTokens:
         return jsonify({'success': False, 'message': 'Not enough tokens.'})
 
+    prevBidAmount = checkUserBid(session['email'], bidID)
+    newAmount = bidAmount - prevBidAmount
     updateBid(bidID, bidAmount, session['email'])
-    deductTokens(session['email'], bidAmount)
+    deductTokens(session['email'], newAmount)
+    if prevBidAmount: updateUserBid(userID, bidID, bidAmount, depositAmount, bidTime)
+    else: addNewUserBid(userID, bidID, bidAmount, depositAmount, bidTime)
 
     return jsonify({'success': True})
 

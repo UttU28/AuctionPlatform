@@ -3,7 +3,8 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     credits INT NOT NULL,
-    tokens INT NOT NULL
+    tokens INT NOT NULL,
+    tokensHold INT NOT NULL
 );
 
 -- Create bidItems table
@@ -20,7 +21,7 @@ CREATE TABLE bidItems (
 
 -- Create allBids table
 CREATE TABLE allBids (
-    applyQueueID INT IDENTITY(1,1) PRIMARY KEY,
+    bidQueueID INT IDENTITY(1,1) PRIMARY KEY,
     userID VARCHAR(36) NOT NULL,
     bidID VARCHAR(36) NOT NULL,
     bidAmount INT NOT NULL,

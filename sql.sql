@@ -1,7 +1,7 @@
--- SELECT * FROM users;
--- SELECT * FROM bidItems;
+SELECT * FROM users;
+SELECT * FROM bidItems;
+SELECT * FROM allBids;
 -- SELECT * FROM SDV;
-
 
 
 -- SELECT COUNT(*) FROM SDV;
