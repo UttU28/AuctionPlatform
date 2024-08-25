@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_bcrypt import Bcrypt
+import urllib3
 from config import AzureSQLConfig
 from utils.db_utils import *
-import re, os, pyodbc
+import re, os, pyodbc, json
 from datetime import datetime, timezone
+from collections import defaultdict
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -16,6 +18,12 @@ def timeKyaHai():
     return int(datetime.now(timezone.utc).timestamp())
 def getAndSetSessionTokens():
     session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['userID'])
+def convertToDict(thisData):
+    grouped_data = defaultdict(list)
+    for item in thisData:
+        bidID = item['bidID']
+        grouped_data[bidID].append(item)
+    return dict(grouped_data)
 
 # Home route
 @app.route('/')
@@ -23,13 +31,14 @@ def index():
     if 'user' in session:
         getAndSetSessionTokens()
         allBids = loadAllBids()
-        allUserBids = loadAllUserBids()
         currentTime = timeKyaHai()
-        print(allUserBids)
+        allUserBids = loadAllUserBids()
         timeStamp0 = allBids[0]["bidID"] if allBids else currentTime
         timeStamp1 = allUserBids[0]["bidQueueID"] if allUserBids else currentTime
         # timeStamp1 = allUserBids[0]["bidID"]
-        return render_template("index.html", user=session['user'], userEmail=session['userID'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp0)
+        allUserBids = convertToDict(allUserBids)
+        allUserBids = removeDuplicatesAndSort(allUserBids)
+        return render_template("index.html", user=session['user'], userEmail=session['userID'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad0=timeStamp0, lastLoad1=timeStamp1, allUserBids=allUserBids)
     
     return redirect(url_for('login'))
 
@@ -119,16 +128,58 @@ def placeBid():
         'tokensHold': tokensHold
     })
 
+def mergeTheBids(userBids, oldUserBits):
+    oldUserBits = {int(k): v for k, v in oldUserBits.items()}
+    for key, bids in oldUserBits.items():
+        if key in userBids:
+            userBids[key].extend(bids)
+        else:
+            userBids[key] = bids
 
-@app.route('/checkNewBids', methods=['GET'])
+    return userBids
+
+
+def removeDuplicatesAndSort(bids):
+    for bidID, bid_list in bids.items():
+        unique_bids = {}
+        for bid in bid_list:
+            key = (bid['userID'], bid['bidAmount'])
+            if key not in unique_bids:
+                unique_bids[key] = bid
+        bids[bidID] = sorted(unique_bids.values(), key=lambda x: x['bidTime'], reverse=True)
+
+    return bids
+
+@app.route('/checkNewBids', methods=['GET', 'POST'])
 def checkNewBids():
-    timestamp = request.args.get('timestamp', type=int)
-    newBids = checkForNewBids(timestamp)
-    if newBids: newTimestamp = newBids[0]["bidID"]
-    else: newTimestamp = timestamp
-    return jsonify({'newBids': newBids, 'newTimestamp': newTimestamp})
+    timestamp0 = request.args.get('timestamp0', type=int)
+    newBids = checkForNewBids(timestamp0)
+    newTimestamp0 = newBids[0]["bidID"] if newBids else timestamp0
 
+    timestamp1 = request.args.get('timestamp1', type=int)
+    userBids = checkForNewUserBids(timestamp1)
+    newTimestamp1 = userBids[0]["bidQueueID"] if userBids else timestamp1
+    userBids = convertToDict(userBids)
 
+    oldUserBits = request.args.get('tempUserBids', type=str)
+    if oldUserBits:
+        oldUserBits = json.loads(oldUserBits)
+        oldUserBits = {int(k): v for k, v in oldUserBits.items()}
+    else:
+        oldUserBits = {}
+
+    # Merge userBids with oldUserBits
+    mergedBids = mergeTheBids(userBids, oldUserBits)
+    print(1,1,1, mergedBids)
+    mergedBids = removeDuplicatesAndSort(mergedBids)
+    print(mergedBids)
+
+    return jsonify({
+        'newBids': newBids,
+        'allUserBids': mergedBids,
+        'newTimestamp0': newTimestamp0,
+        'newTimestamp1': newTimestamp1
+    })
 # User Authentication
 @app.route('/register', methods=['GET', 'POST'])
 def register():

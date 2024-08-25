@@ -65,15 +65,6 @@ def loadAllBids():
     rows = execute_query(query, fetchall=True)
     return [{'bidID': row[0], 'baseBid': row[1], 'highestBid': row[2], 'highestBidder': row[3], 'title': row[4], 'description': row[5], 'currentOwner': row[6]} for row in rows]
 
-def loadAllUserBids():
-    query = """
-        SELECT bidQueueID, userID, bidID, bidAmount, bidTime
-        FROM allBids
-        ORDER BY bidQueueID DESC
-    """
-    rows = execute_query(query, fetchall=True)
-    return [{'bidQueueID': row[0], 'userID': row[1], 'bidID': row[2], 'bidAmount': row[3], 'bidTime': row[4]} for row in rows]
-
 def checkForNewBids(fromWhatTime):
     query = """
         SELECT b.bidID, b.baseBid, b.highestBid, b.highestBidder, i.title, i.description, i.currentOwner
@@ -84,6 +75,25 @@ def checkForNewBids(fromWhatTime):
     """
     rows = execute_query(query, (fromWhatTime,), fetchall=True)
     return [{'bidID': row[0], 'baseBid': row[1], 'highestBid': row[2], 'highestBidder': row[3], 'title': row[4], 'description': row[5], 'currentOwner': row[6]} for row in rows]
+
+def loadAllUserBids():
+    query = """
+        SELECT bidQueueID, userID, bidID, bidAmount, bidTime
+        FROM allBids
+        ORDER BY bidQueueID DESC
+    """
+    rows = execute_query(query, fetchall=True)
+    return [{'bidQueueID': row[0], 'userID': row[1], 'bidID': row[2], 'bidAmount': row[3], 'bidTime': row[4]} for row in rows]
+
+def checkForNewUserBids(fromWhatTime):
+    query = """
+        SELECT bidQueueID, userID, bidID, bidAmount, bidTime
+        FROM allBids
+        WHERE bidTime > ?
+        ORDER BY bidQueueID DESC
+    """
+    rows = execute_query(query, (fromWhatTime,), fetchall=True)
+    return [{'bidQueueID': row[0], 'userID': row[1], 'bidID': row[2], 'bidAmount': row[3], 'bidTime': row[4]} for row in rows]
 
 def getBidById(bidID):
     query = "SELECT * FROM bidQueue WHERE bidID = ?"
@@ -140,6 +150,8 @@ def addToInventory(itemID, title, description, currentOwner):
     """
     execute_query(query, (itemID, title, description, currentOwner), commit=True)
 
+def leadInventoryFor():
+    pass
 def addToBidQueue(bidID, itemID, baseBid):
     query = """
         INSERT INTO bidQueue (bidID, itemID, baseBid) 
