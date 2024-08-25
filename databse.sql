@@ -25,7 +25,6 @@ CREATE TABLE allBids (
     userID VARCHAR(36) NOT NULL,
     bidID VARCHAR(36) NOT NULL,
     bidAmount INT NOT NULL,
-    depositAmount INT NOT NULL,
     bidTime BIGINT NOT NULL
 );
 

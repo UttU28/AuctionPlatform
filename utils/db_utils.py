@@ -50,6 +50,10 @@ def getUserCreditsTokens(email):
         return row[0], row[1], row[2]
     return 0, 0, 0
 
+def updateCreditsAndTokens(user, credits, tokens):
+    query = "UPDATE users SET credits = ?, tokens = ? WHERE email = ?"
+    execute_query(query, (credits, tokens, user), commit=True)
+
 # Bid Management
 def loadAllBids():
     query = """
@@ -102,17 +106,17 @@ def deductTokens(email, amount):
     execute_query(query, (amount, amount, email), commit=True)
 
 # All User Bids Management
-def addNewUserBid(userID, bidID, bidAmount, depositAmount, bidTime):
+def addNewUserBid(userID, bidID, bidAmount, bidTime):
     query = """
-        INSERT INTO allBids (userID, bidID, bidAmount, depositAmount, bidTime) 
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO allBids (userID, bidID, bidAmount, bidTime) 
+        VALUES (?, ?, ?, ?)
     """
-    execute_query(query, (userID, bidID, bidAmount, depositAmount, bidTime), commit=True)
+    execute_query(query, (userID, bidID, bidAmount, bidTime), commit=True)
 
-def updateUserBid(userID, bidID, bidAmount, depositAmount, bidTime):
+def updateUserBid(userID, bidID, bidAmount, bidTime):
     query = """
         UPDATE allBids
-        SET bidAmount = ?, depositAmount = ?, bidTime = ?
+        SET bidAmount = ?, bidTime = ?
         WHERE userID = ? AND bidID = ?
     """
-    execute_query(query, (bidAmount, depositAmount, bidTime, userID, bidID), commit=True)
+    execute_query(query, (bidAmount, bidTime, userID, bidID), commit=True)

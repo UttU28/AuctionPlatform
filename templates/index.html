@@ -3,18 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <title>Auction</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="text">Welcome {{ user }}</div>
-    <div class="text">EMAIL {{ userEmail }}</div>
-    
-    <div class="walletDiv">
-        <div class="credits"><div class="text">CREDITS: </div><div class="value">{{ credits }}</div></div>
-        <div class="tokens"><div class="text">TOKENS: </div><div class="value">{{ tokens }}</div></div>
-        <div class="tokensHold"><div class="text">TKn HOLD: </div><div class="value">{{ tokensHold }}</div></div>
+    <div class="text">{{ userEmail }}</div>
+
+    <div class="container">
+        <div class="walletDiv">
+            <div class="credits"><div class="text">CREDITS</div><div class="value" id="credits">{{ credits }}</div></div>
+            <div class="tokens"><div class="text">TOKENS</div><div class="value" id="tokens">{{ tokens }}</div></div>
+            <div class="tokensHold"><div class="text">TKn HOLD</div><div class="value" id="tokensHold">{{ tokensHold }}</div></div>
+        </div>
+
+        <div class="convertCreditsToTokens">
+            <div class="convert-form">
+                <label for="creditsToConvert">Convert Credits to Tokens:</label>
+                <input type="number" id="creditsToConvert" placeholder="Enter credits" min="1">
+                <p>Tokens to Receive: <span id="tokensResult">0</span></p>
+                <input type="number" id="tokensToReceive" placeholder="Tokens" readonly>
+                <button onclick="convertCredits()">Convert</button>
+                <p id="conversionMessage"></p>
+            </div>
+        </div>
+        
     </div>
 
     <div class="container">
@@ -22,9 +37,9 @@
             {% for bid in allBids %}
                 <div class="bidItem" id="bid-{{ bid.id }}">
                     <h2>{{ bid.title }}</h2>
-                    <p>{{ bid.description }}</p>
-                    <p>Base Bid: ${{ bid.baseBid }}</p>
-                    <p>Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
+                    <p class="description">{{ bid.description }}</p>
+                    <p class="baseBid">Base Bid: ${{ bid.baseBid }}</p>
+                    <p class="highestBid">Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
                     <input type="number" id="bidInput-{{ bid.id }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
                     <button onclick="placeBid('{{ bid.id }}')">Place Bid</button>
                 </div>
@@ -34,8 +49,10 @@
 
     <script>
         var lastLoadTimestamp = {{ lastLoad }};
+        var isRequestInProgress = false;
 
         function placeBid(bidId) {
+            if (isRequestInProgress) return;
             var bidInput = document.getElementById('bidInput-' + bidId);
             var bidAmount = parseInt(bidInput.value, 10);
 
@@ -43,6 +60,8 @@
                 alert('Please enter a valid bid amount.');
                 return;
             }
+
+            isRequestInProgress = true;
 
             $.ajax({
                 url: '/placeBid',
@@ -55,18 +74,28 @@
                 success: function(response) {
                     if (response.success) {
                         alert('Bid placed successfully!');
-                        location.reload();
+                        $('#credits').text(response.credits);
+                        $('#tokens').text(response.tokens);
+                        $('#tokensHold').text(response.tokensHold);
+                        var bidItem = $('#bid-' + bidId);
+                        bidItem.find('.highestBid').text('Highest Bid: $' + bidAmount);
+                        bidInput.value = '';
                     } else {
                         alert(response.message);
                     }
                 },
                 error: function() {
                     alert('An error occurred. Please try again.');
+                },
+                complete: function() {
+                    isRequestInProgress = false;
                 }
             });
         }
 
         function checkForNewBids() {
+            if (isRequestInProgress) return;
+
             $.ajax({
                 url: '/checkNewBids',
                 method: 'GET',
@@ -75,15 +104,14 @@
                 },
                 success: function(response) {
                     if (response.newBids.length > 0) {
-                        // Handle new bids, e.g., append them to the top
                         var container = $('.allBids');
                         response.newBids.forEach(function(bid) {
                             var bidHtml = `
                                 <div class="bidItem" id="bid-${bid.id}">
                                     <h2>${bid.title}</h2>
-                                    <p>${bid.description}</p>
-                                    <p>Base Bid: $${bid.baseBid}</p>
-                                    <p>Highest Bid: $${bid.highestBid || 'No bids yet'}</p>
+                                    <p class="description">${bid.description}</p>
+                                    <p class="baseBid">Base Bid: $${bid.baseBid}</p>
+                                    <p class="highestBid">Highest Bid: $${bid.highestBid || 'No bids yet'}</p>
                                     <input type="number" id="bidInput-${bid.id}" placeholder="Enter your bid" min="${(bid.highestBid || bid.baseBid) + 1}">
                                     <button onclick="placeBid('${bid.id}')">Place Bid</button>
                                 </div>
@@ -99,7 +127,73 @@
             });
         }
 
-        // Check for new bids every 10 seconds
+        function convertCredits() {
+            if (isRequestInProgress) return;
+            
+            var creditsInput = document.getElementById('creditsToConvert');
+            var credits = parseInt(creditsInput.value, 10);
+            var tokens = Math.floor(credits / 3);
+            var credits = Math.floor(tokens * 3);
+
+            if (isNaN(credits) || credits <= 0) {
+                alert('Please enter a valid amount of credits.');
+                return;
+            }
+
+            if (tokens <= 0) {
+                alert('You need at least 3 credits to convert to 1 token.');
+                return;
+            }
+
+            isRequestInProgress = true;
+
+            $.ajax({
+                url: '/convertCreditsToTokens',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    credits: credits,
+                    tokens: tokens
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#credits').text(response.newCredits);
+                        $('#tokens').text(response.newTokens);
+                        $('#conversionMessage').text(`Successfully converted ${credits} credits to ${tokens} tokens.`);
+                        document.getElementById('creditsToConvert').value = '';
+                        document.getElementById('tokensToReceive').value = tokens;
+                    } else {
+                        $('#conversionMessage').text(response.message);
+                    }
+                },
+                error: function() {
+                    $('#conversionMessage').text('An error occurred. Please try again.');
+                },
+                complete: function() {
+                    isRequestInProgress = false;
+                }
+            });
+        }
+
+        function updateConversion() {
+            var creditsInput = document.getElementById('creditsToConvert');
+            var tokensResult = document.getElementById('tokensResult');
+            var tokensInput = document.getElementById('tokensToReceive');
+            var credits = parseInt(creditsInput.value, 10);
+
+            if (isNaN(credits) || credits <= 0) {
+                tokensResult.textContent = '0';
+                tokensInput.value = '0';
+                return;
+            }
+
+            var tokens = Math.floor(credits / 3);
+            tokensResult.textContent = tokens;
+            tokensInput.value = tokens;
+        }
+
+        document.getElementById('creditsToConvert').addEventListener('input', updateConversion);
+
         setInterval(checkForNewBids, 10000);
     </script>
 </body>

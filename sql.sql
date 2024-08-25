@@ -3,6 +3,8 @@ SELECT * FROM bidItems;
 SELECT * FROM allBids;
 -- SELECT * FROM SDV;
 
+-- delete from allBids;
+-- drop table allBids;
 
 -- SELECT COUNT(*) FROM SDV;
 -- SELECT COUNT(*) FROM SDV;

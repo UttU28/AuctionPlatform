@@ -12,16 +12,42 @@ app.config.from_object(AzureSQLConfig)
 # Initialize bcrypt for password hashing
 bcrypt = Bcrypt(app)
 
+def getAndSetSessionTokens():
+    session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['email'])
+
 # Home route
 @app.route('/')
 def index():
     if 'user' in session:
-        session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['email'])
+        getAndSetSessionTokens()
         allBids = loadAllBids()
         timeStamp = allBids[0]["startTime"]
         return render_template("index.html", user=session['user'], userEmail=session['email'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp)
     
     return redirect(url_for('login'))
+
+@app.route('/convertCreditsToTokens', methods=['POST'])
+def convertCreditsToTokens():
+    data = request.json
+    credits = data.get('credits')
+    tokens = data.get('tokens')
+
+    if credits < 3 or tokens <= 0:
+        return jsonify({'success': False, 'message': 'Invalid credits or tokens'})
+    
+    # Check if user has enough credits
+    if credits > session['credits']:
+        return jsonify({'success': False, 'message': 'Insufficient credits.'})
+
+    newCredits = session['credits'] - credits 
+    newTokens = session['tokens'] + tokens 
+    updateCreditsAndTokens(session['email'], newCredits, newTokens)
+
+    return jsonify({
+        'success': True,
+        'newCredits': newCredits,
+        'newTokens': newTokens,
+    })
 
 @app.route('/placeBid', methods=['POST'])
 def placeBid():
@@ -34,14 +60,12 @@ def placeBid():
     userID = session['email']
     bidID = data['bidId']
     bidAmount = data['amount']
-    depositAmount = int(bidAmount*.75)
     bidTime = int(datetime.now(timezone.utc).timestamp())
 
     bid = getBidById(bidID)
 
     if bidAmount <= bid['highestBid']:
         return jsonify({'success': False, 'message': 'Bid must be higher than the current highest bid.'})
-
     if bidAmount > userTokens:
         return jsonify({'success': False, 'message': 'Not enough tokens.'})
 
@@ -49,10 +73,25 @@ def placeBid():
     newAmount = bidAmount - prevBidAmount
     updateBid(bidID, bidAmount, session['email'])
     deductTokens(session['email'], newAmount)
-    if prevBidAmount: updateUserBid(userID, bidID, bidAmount, depositAmount, bidTime)
-    else: addNewUserBid(userID, bidID, bidAmount, depositAmount, bidTime)
+    if prevBidAmount:
+        updateUserBid(userID, bidID, bidAmount, bidTime)
+    else:
+        addNewUserBid(userID, bidID, bidAmount, bidTime)
 
-    return jsonify({'success': True})
+    # Update session variables
+    getAndSetSessionTokens()
+    credits = session['credits']
+    tokens = session['tokens']
+    tokensHold = session['tokensHold']
+
+    return jsonify({
+        'success': True,
+        'newAmount': newAmount,
+        'credits': credits,
+        'tokens': tokens,
+        'tokensHold': tokensHold
+    })
+
 
 @app.route('/checkNewBids', methods=['GET'])
 def checkNewBids():
