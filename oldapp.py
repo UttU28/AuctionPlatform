@@ -12,8 +12,10 @@ app.config.from_object(AzureSQLConfig)
 # Initialize bcrypt for password hashing
 bcrypt = Bcrypt(app)
 
+def timeKyaHai():
+    return int(datetime.now(timezone.utc).timestamp())
 def getAndSetSessionTokens():
-    session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['email'])
+    session['credits'], session['tokens'], session['tokensHold'] = getUserCreditsTokens(session['userID'])
 
 # Home route
 @app.route('/')
@@ -22,9 +24,22 @@ def index():
         getAndSetSessionTokens()
         allBids = loadAllBids()
         timeStamp = allBids[0]["startTime"]
-        return render_template("index.html", user=session['user'], userEmail=session['email'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp)
+        return render_template("index.html", user=session['user'], userEmail=session['userID'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp)
     
     return redirect(url_for('login'))
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        baseBid = request.form['baseBid']
+        currentTime = timeKyaHai()
+        addToInventory(currentTime, title, description, session['userID'])
+        addToBidQueue(currentTime, currentTime, baseBid)
+        return redirect(url_for('admin'))
+    
+    return render_template('admin.html')
 
 @app.route('/convertCreditsToTokens', methods=['POST'])
 def convertCreditsToTokens():
@@ -41,7 +56,7 @@ def convertCreditsToTokens():
 
     newCredits = session['credits'] - credits 
     newTokens = session['tokens'] + tokens 
-    updateCreditsAndTokens(session['email'], newCredits, newTokens)
+    updateCreditsAndTokens(session['userID'], newCredits, newTokens)
 
     return jsonify({
         'success': True,
@@ -57,10 +72,10 @@ def placeBid():
     data = request.get_json()
     userTokens = session['tokens']
 
-    userID = session['email']
+    userID = session['userID']
     bidID = data['bidId']
     bidAmount = data['amount']
-    bidTime = int(datetime.now(timezone.utc).timestamp())
+    bidTime = timeKyaHai()
 
     bid = getBidById(bidID)
 
@@ -69,10 +84,10 @@ def placeBid():
     if bidAmount > userTokens:
         return jsonify({'success': False, 'message': 'Not enough tokens.'})
 
-    prevBidAmount = checkUserBid(session['email'], bidID)
+    prevBidAmount = checkUserBid(session['userID'], bidID)
     newAmount = bidAmount - prevBidAmount
-    updateBid(bidID, bidAmount, session['email'])
-    deductTokens(session['email'], newAmount)
+    updateBid(bidID, bidAmount, session['userID'])
+    deductTokens(session['userID'], newAmount)
     if prevBidAmount:
         updateUserBid(userID, bidID, bidAmount, bidTime)
     else:
@@ -107,11 +122,11 @@ def checkNewBids():
 def register():
     if request.method == 'POST':
         name = request.form['name']
-        email = request.form['email']
+        email = request.form['userID']
         password = request.form['password']
         hashedPassword = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        if getUserByEmail(email):
+        if getUserByUserID(email):
             error = 'Email already registered. Please log in.'
             return render_template('register.html', error=error, name=name, email=email)
         
@@ -124,13 +139,13 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        email = request.form['userID']
         password = request.form['password']
         
-        user = getUserByEmail(email)
+        user = getUserByUserID(email)
         if user and bcrypt.check_password_hash(user['hashed_password'], password):
             session['user'] = user['name']
-            session['email'] = user['email']
+            session['userID'] = user['userID']
             session['credits'] = user['credits']
             session['tokens'] = user['tokens']
             return redirect(url_for('index'))

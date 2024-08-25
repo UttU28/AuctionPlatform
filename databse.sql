@@ -1,53 +1,41 @@
+-- Create users table
 CREATE TABLE users (
-    email VARCHAR(255) PRIMARY KEY,
+    userID VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
-    credits INT NOT NULL,
-    tokens INT NOT NULL,
-    tokensHold INT NOT NULL
+    credits INT NOT NULL DEFAULT 0,
+    tokens INT NOT NULL DEFAULT 0,
+    tokensHold INT NOT NULL DEFAULT 0
 );
 
--- Create bidItems table
-CREATE TABLE bidItems (
-    id VARCHAR(36) PRIMARY KEY,
+-- Create item table
+CREATE TABLE inventory (
+    itemID BIGINT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    description NTEXT,
-    startTime BIGINT NOT NULL,
-    baseBid INT NOT NULL,
-    highestBid INT,
-    highestBidder VARCHAR(36),
+    description TEXT NOT NULL,
+    currentOwner VARCHAR(255) NOT NULL,
+    FOREIGN KEY (currentOwner) REFERENCES users(userID)
 );
 
+-- Create bidQueue table
+CREATE TABLE bidQueue (
+    bidID BIGINT PRIMARY KEY,
+    itemID BIGINT NOT NULL,
+    baseBid INT NOT NULL,
+    highestBid INT DEFAULT 0,
+    highestBidder VARCHAR(255),
+    FOREIGN KEY (itemID) REFERENCES inventory(itemID),
+    FOREIGN KEY (highestBidder) REFERENCES users(userID)
+);
 
 -- Create allBids table
 CREATE TABLE allBids (
     bidQueueID INT IDENTITY(1,1) PRIMARY KEY,
-    userID VARCHAR(36) NOT NULL,
-    bidID VARCHAR(36) NOT NULL,
+    userID VARCHAR(255) NOT NULL,
+    bidID INT NOT NULL,
     bidAmount INT NOT NULL,
-    bidTime BIGINT NOT NULL
+    bidTime BIGINT NOT NULL,
+    FOREIGN KEY (userID) REFERENCES users(userID),
+    FOREIGN KEY (bidID) REFERENCES bidQueue(bidID)
 );
 
--- -- Create resumeList table
--- CREATE TABLE resumeList (
---     resumeId VARCHAR(255) PRIMARY KEY,
---     resumeName VARCHAR(255) NOT NULL,
---     email VARCHAR(255) NOT NULL
--- );
-
--- -- Create applyQueue table
--- CREATE TABLE applyQueue (
---     applyQueueID INT IDENTITY(1,1) PRIMARY KEY,
---     jobID VARCHAR(36) NOT NULL,
---     timeOfArrival BIGINT NOT NULL,
---     selectedResume VARCHAR(255) NOT NULL,
---     email VARCHAR(255) NOT NULL
--- );
--- SELECT * FROM applyQueue;
-
--- -- Create scoreBoard table
--- CREATE TABLE scoreBoard (
---     contender VARCHAR(255) NOT NULL,
---     score INT NOT NULL,
---     PRIMARY KEY (contender)
--- );

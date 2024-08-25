@@ -50,19 +50,28 @@
     <script>
         var lastLoadTimestamp = {{ lastLoad }};
         var isRequestInProgress = false;
-
+    
+        function disableButtons() {
+            $('button').prop('disabled', true);
+        }
+    
+        function enableButtons() {
+            $('button').prop('disabled', false);
+        }
+    
         function placeBid(bidId) {
             if (isRequestInProgress) return;
             var bidInput = document.getElementById('bidInput-' + bidId);
             var bidAmount = parseInt(bidInput.value, 10);
-
+    
             if (isNaN(bidAmount) || bidAmount <= 0) {
                 alert('Please enter a valid bid amount.');
                 return;
             }
-
+    
             isRequestInProgress = true;
-
+            disableButtons();
+    
             $.ajax({
                 url: '/placeBid',
                 method: 'POST',
@@ -73,7 +82,6 @@
                 }),
                 success: function(response) {
                     if (response.success) {
-                        alert('Bid placed successfully!');
                         $('#credits').text(response.credits);
                         $('#tokens').text(response.tokens);
                         $('#tokensHold').text(response.tokensHold);
@@ -89,13 +97,17 @@
                 },
                 complete: function() {
                     isRequestInProgress = false;
+                    enableButtons();
                 }
             });
         }
-
+    
         function checkForNewBids() {
             if (isRequestInProgress) return;
-
+    
+            isRequestInProgress = true;
+            disableButtons();
+    
             $.ajax({
                 url: '/checkNewBids',
                 method: 'GET',
@@ -123,30 +135,35 @@
                 },
                 error: function() {
                     console.error('Failed to check for new bids.');
+                },
+                complete: function() {
+                    isRequestInProgress = false;
+                    enableButtons();
                 }
             });
         }
-
+    
         function convertCredits() {
             if (isRequestInProgress) return;
-            
+    
             var creditsInput = document.getElementById('creditsToConvert');
             var credits = parseInt(creditsInput.value, 10);
             var tokens = Math.floor(credits / 3);
-            var credits = Math.floor(tokens * 3);
-
+            var credits = tokens * 3;
+    
             if (isNaN(credits) || credits <= 0) {
                 alert('Please enter a valid amount of credits.');
                 return;
             }
-
+    
             if (tokens <= 0) {
                 alert('You need at least 3 credits to convert to 1 token.');
                 return;
             }
-
+    
             isRequestInProgress = true;
-
+            disableButtons();
+    
             $.ajax({
                 url: '/convertCreditsToTokens',
                 method: 'POST',
@@ -171,30 +188,32 @@
                 },
                 complete: function() {
                     isRequestInProgress = false;
+                    enableButtons();
                 }
             });
         }
-
+    
         function updateConversion() {
             var creditsInput = document.getElementById('creditsToConvert');
             var tokensResult = document.getElementById('tokensResult');
             var tokensInput = document.getElementById('tokensToReceive');
             var credits = parseInt(creditsInput.value, 10);
-
+    
             if (isNaN(credits) || credits <= 0) {
                 tokensResult.textContent = '0';
                 tokensInput.value = '0';
                 return;
             }
-
+    
             var tokens = Math.floor(credits / 3);
             tokensResult.textContent = tokens;
             tokensInput.value = tokens;
         }
-
+    
         document.getElementById('creditsToConvert').addEventListener('input', updateConversion);
-
+    
         setInterval(checkForNewBids, 10000);
     </script>
+    
 </body>
 </html>
