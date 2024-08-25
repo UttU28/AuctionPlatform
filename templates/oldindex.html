@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/jobCard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <title>Dice Saral Apply</title>
+</head>
+
+<body>
+    <!--==================== HEADER ====================-->
+    <header class="header" id="header">
+        <nav class="nav container">
+            <a href="#" class="nav__logo">Dice Saral Apply</a>
+            <div class="nav__menu" id="nav-menu">
+                <div class="userData">
+                    <div class="userName">Welcome, {{ user }}!</div>
+                    <div class="userEmail">{{ userEmail }}!</div>
+                </div>
+                <ul class="nav__list">
+                    <li class="nav__item">
+                        <a href="{{ url_for('manageResume') }}" class="nav__link">Resume Manager</a>
+                    </li>
+                    <li class="nav__item">
+                        <a href="{{ url_for('logout') }}" class="nav__link">Log Out</a>
+                    </li>
+                </ul>
+                <div class="nav__close" id="nav-close">
+                    <i class="ri-close-line"></i>
+                </div>
+                <div class="shiv">yatra tatra sarvatra shiv</div>
+            </div>
+            <div class="nav__actions">
+                <div class="nav__toggle" id="nav-toggle">
+                    <i class="ri-menu-line"></i>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!--==================== MAIN ====================-->
+    <div class="jobCard">
+        <div class="card jobCard--card" id="jobCard">
+            <div class="card-header">
+                <h2 id="jobTitle">{{ jobData[0].title }}</h2>
+                <p id="companyName">{{ jobData[0].company }}</p>
+                <p id="timeAgo"></p>
+            </div>
+            <div class="card-body">
+                <p id="jobDescription">{{ jobData[0].description | safe }}</p>
+            </div>
+        </div>
+        <div class="selectResume card jobCard--card hidden" id="selectResumeCard">
+            <div class="card-header">
+                <input type="hidden" name="job_id" value="{{ jobData[0].id }}">
+                <h2>Select Resume</h2>
+                <p>Select resume for this Job Role.. and press APPLY</p>
+            </div>
+            <div class="card-body">
+                <div class="resume-options">
+                    {% for resume_id, resume_name in resumeData.items() %}
+                    <label class="resume-option">
+                        <input type="radio" name="resume_id" id="resume_{{ resume_id }}" value="{{ resume_id }}">
+                        <span>{{ resume_name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <button id="acceptBtn">APPLY</button>
+            </div>
+        </div>
+        <div class="jobCard--buttons">
+            <button id="rejectBtn">DENY</button>
+            <button id="resumeBtn" type="button" onclick="toggleSelectResume()">SELECT RESUME</button>
+        </div>
+    </div>
+
+    <!--=============== MAIN JS ===============-->
+    <script>
+    $(document).ready(function () {
+        let currentIndex = 0;
+
+        function timeAgo(timestamp) {
+            const current = new Date();
+            const previous = new Date(timestamp * 1000); // Convert UNIX timestamp to milliseconds
+            const diff = current - previous;
+
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) {
+                return days + " days ago";
+            } else if (hours > 0) {
+                return hours + " hours ago";
+            } else if (minutes > 0) {
+                return minutes + " minutes ago";
+            } else {
+                return seconds + " seconds ago";
+            }
+        }
+
+        function updateJob(index) {
+            if (index < {{ pendingJobs }}) {
+                const job = {{ jobData | tojson }};
+                console.log(job[index])
+                $('#jobTitle').text(job[index].title);
+                $('#companyName').text(job[index].company);
+                console.log(timeAgo(job[index].timeOfArrival))
+                $('#timeAgo').text(timeAgo(job[index].timeOfArrival));
+                $('#timeAgo').data('lastView', job[index].timeOfArrival);
+                $('#jobDescription').html(job[index].description);
+                $('#jobCard').data('job-id', job[index].id);
+
+                // Check visibility of elements
+                const jobCard = document.getElementById('jobCard');
+                const selectResumeCard = document.getElementById('selectResumeCard');
+
+                // If selectResumeCard is visible, toggle the visibility of both cards
+                if (!selectResumeCard.classList.contains('hidden') && jobCard.classList.contains('hidden')) {
+                    toggleSelectResume();
+                }
+            } else {
+                // No more jobs
+                window.location.href = "{{ url_for('index') }}";
+                // $.ajax({
+                //     url: "{{ url_for('noMoreJobs') }}",
+                //     method: "GET",
+                //     success: function (response) {
+                //         $('body').html(response);
+                //     }
+                // });
+            }
+        }
+
+        $('#acceptBtn').click(function () {
+            const jobId = $('#jobCard').data('job-id');
+            const selectedResume = $('input[name="resume_id"]:checked').val();
+            const lastView = $('#timeAgo').data('lastView');
+            $.ajax({
+                url: "{{ url_for('jobAccepted') }}",
+                method: "POST",
+                data: {
+                    jobID: jobId,
+                    lastView: lastView,
+                    selectedResume: selectedResume
+                },
+                success: function () {
+                    currentIndex++;
+                    updateJob(currentIndex);
+                },
+                error: function () {
+                    alert('Error accepting job');
+                }
+            });
+            toggleSelectResume();
+        });
+
+        $('#rejectBtn').click(function () {
+            const lastView = $('#timeAgo').data('lastView');
+            console.log(lastView, "lastView")
+            $.ajax({
+                url: "{{ url_for('jobRejected') }}",
+                method: "POST",
+                data: {
+                    lastView: lastView
+                },
+                success: function () {
+                    currentIndex++;
+                    updateJob(currentIndex);
+                },
+                error: function () {
+                    alert('Error rejecting job');
+                }
+            });
+        });
+
+        // Initial job load
+        updateJob(currentIndex);
+
+        // Handle resume selection
+        $('input[name="resume_id"]').change(function () {
+            $('.resume-option').removeClass('selected'); // Remove 'selected' class from all options
+            $(this).closest('.resume-option').addClass('selected'); // Add 'selected' class to the chosen option
+        });
+    });
+
+    function toggleSelectResume() {
+        var jobCard = document.getElementById('jobCard');
+        var selectResumeCard = document.getElementById('selectResumeCard');
+
+        jobCard.classList.toggle('hidden');
+        selectResumeCard.classList.toggle('hidden');
+    }
+
+    document.getElementById('nav-toggle').addEventListener('click', function () {
+        document.getElementById('nav-menu').classList.toggle('active');
+    });
+
+    document.getElementById('nav-close').addEventListener('click', function () {
+        document.getElementById('nav-menu').classList.remove('active');
+    });
+
+    // Add this script to handle touch events for mobile devices
+    document.addEventListener('DOMContentLoaded', () => {
+        // Get all buttons with hover effects
+        const buttons = document.querySelectorAll('#rejectBtn, #resumeBtn, #acceptBtn');
+
+        buttons.forEach(button => {
+            button.addEventListener('touchend', () => {
+                button.classList.remove('hover');
+            });
+        });
+    });
+
+    </script>
+</body>
+
+</html>

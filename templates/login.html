@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+
+</head>
+
+<body>
+    <div class="mainName">DICE SARAL APPLY</div>
+    <div class="form-container">
+        <h2>Login</h2>
+
+        <!-- Error message section -->
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form id="loginForm" class="thisForm" method="POST" action="{{ url_for('login') }}">
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">LOGIN</button>
+        </form>
+
+        <div class="container">
+            <a href="{{ url_for('forgotPassword') }}" class="addText">Forgot your password?</a>
+            <a href="{{ url_for('register') }}" class="addText">Don't have an account?</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function (event) {
+            const email = event.target.email.value;
+            const password = event.target.password.value;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                event.preventDefault();
+                return;
+            }
+
+            if (password.length < 4) {
+                alert('Password must be at least 4 characters long.');
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,235 @@
+@import url('https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css');
+
+/* Base styles */
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+}
+
+body,
+input,
+button {
+    font-family: 'Arial', sans-serif;
+    font-size: 1rem;
+    background-color: #121212;
+    color: var(--whiteFont);
+}
+
+input,
+button {
+    border: none;
+    outline: none;
+}
+
+ul {
+    list-style: none;
+}
+
+a {
+    text-decoration: none;
+    color: var(--apnaBlue);
+}
+
+a:hover {
+    color: var(--whiteFont);
+}
+
+/* Form Container */
+.form-container {
+    max-width: 90%;
+    margin: 3rem auto;
+    padding: 1.25rem;
+    border-radius: 15px;
+    box-shadow: -0.5rem -0.5rem 0.5rem #0c0c0c, 0.5rem 0.5rem 0.5rem #222222;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    height: 3rem;
+    width: 100%;
+    border: 2px solid var(--whiteFont);
+    background: none;
+    color: var(--whiteFont);
+    border-radius: 1rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+button {
+    margin-top: 2rem;
+    height: 3rem;
+    width: 100%;
+    border: 2px solid var(--apnaGreen);
+    background: none;
+    color: var(--apnaGreen);
+    border-radius: 1rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button:hover {
+    background: var(--apnaGreen);
+    color: var(--whiteFont);
+}
+
+/* Error Message */
+.error-message {
+    background-color: var(--apnaRed);
+    color: var(--whiteFont);
+    padding: 0.625rem;
+    margin-bottom: 0.9375rem;
+    border-radius: 0.25rem;
+    text-align: center;
+}
+
+/* Main Name */
+.mainName {
+    margin: 1rem 0;
+    text-align: center;
+    font-size: 2rem;
+}
+
+/* Container Styles */
+.container,
+.submarine {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.submarine {
+    margin-top: 2rem;
+}
+
+.container a {
+    width: fit-content;
+    padding: 0.1rem;
+}
+
+/* Custom file upload styling */
+.custum-file-upload {
+    height: 200px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #e8e8e8;
+    padding: 1.5rem;
+    border-radius: 15px;
+    box-shadow: -0.5rem -0.5rem 0.5rem #0c0c0c, 0.5rem 0.5rem 0.5rem #222222;
+}
+
+.custum-file-upload .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custum-file-upload .icon svg {
+    height: 80px;
+    fill: #e8e8e8;
+}
+
+.custum-file-upload .text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custum-file-upload .text span {
+    font-weight: 400;
+    color: #e8e8e8;
+}
+
+.custum-file-upload input {
+    display: none;
+}
+
+/* Style the resume list */
+.resume-list {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.resume-list li {
+    border: 1px solid #333;
+    padding: 0.75rem 1.25rem;
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resume-list li p {
+    overflow: hidden;
+}
+
+.resume-list li .delete-btn {
+    color: var(--apnaRed);
+    border: 1px solid var(--apnaRed);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.resume-list li .delete-btn:hover {
+    background-color: var(--apnaRed);
+    color: var(--whiteFont);
+}
+
+/* Handle long resume names */
+.resume-list li p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+/* Style the upload button */
+#uploadBtn {
+    background-color: var(--bodyColor);
+    color: var(--whiteFont);
+    padding: 1rem 2rem;
+    cursor: not-allowed;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    margin-top: 1rem;
+    border-radius: 15px;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+
+#uploadBtn.active {
+    border: 1px solid var(--apnaGreen);
+    color: var(--apnaGreen);
+    cursor: pointer;
+}
+
+#uploadBtn:hover.active {
+    color: var(--whiteFont);
+    background-color: var(--apnaGreen);
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Auction</title>
+</head>
+<body>
+    <div class="text">Welcome {{ user }}</div>
+    <div class="text">EMAIL {{ userEmail }}</div>
+    <div class="text">CREDITS {{ credits }}</div>
+    <div class="text">TOKENS {{ tokens }}</div>
+
+    
+    <div class="walletDiv">
+        <div class="credits"><div class="text">CREDITS: </div><div class="value">{{ credits }}</div></div>
+        <div class="tokens"><div class="text">TOKENS: </div><div class="value">{{ tokens }}</div></div>
+    </div>
+
+    <div class="container">
+        <div class="allBids"></div>
+    </div>
+</body>
+</html>

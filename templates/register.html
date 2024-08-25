@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Register Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}">
+
+</head>
+<body>
+    <div class="mainName">Simple Auction Platform</div>
+    <div class="form-container">
+        <h2>Register</h2>
+        
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        
+        <form id="registerForm" class="thisForm" method="POST" action="{{ url_for('register') }}">
+            <input type="text" name="name" placeholder="Name" value="{{ request.form.get('name', '') }}" required>
+            <input type="email" name="email" placeholder="Email used in Dice" value="{{ request.form.get('email', '') }}" required>
+            <input type="password" name="password" placeholder="Pass-4-this App" required>
+            <button type="submit">Register</button>
+        </form>
+
+        <div class="container">
+            <!-- <a href="login.html" class="addText">Already have an account?</a> -->
+            <a href="{{ url_for('login') }}" class="addText">Already have an account?</a>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(event) {
+            const email = event.target.email.value;
+            const password = event.target.password.value;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                event.preventDefault();
+                return;
+            }
+            
+            if (password.length < 4) {
+                alert('Password must be at least 4 characters long.');
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
