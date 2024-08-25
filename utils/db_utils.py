@@ -21,9 +21,6 @@ def execute_query(query, params=(), fetchone=False, fetchall=False, commit=False
             result = cursor.fetchall()
         if commit:
             connection.commit()
-        elif commitLog:
-            connection.commit()
-            result = cursor.lastrowid
     except pyodbc.Error as e:
         print(f"Error: {e}")
     finally:
@@ -60,30 +57,41 @@ def updateCreditsAndTokens(user, credits, tokens):
 # Bid Management
 def loadAllBids():
     query = """
-        SELECT * FROM bidQueue
-        ORDER BY startTime DESC
+        SELECT b.bidID, b.baseBid, b.highestBid, b.highestBidder, i.title, i.description, i.currentOwner
+        FROM bidQueue b
+        JOIN inventory i ON b.itemID = i.itemID
+        ORDER BY b.bidID DESC
     """
     rows = execute_query(query, fetchall=True)
-    return [{'id': row[0], 'title': row[1], 'description': row[2], 'startTime': row[3], 'baseBid': row[4], 'highestBid': row[5], 'highestBidder': row[6]} for row in rows]
+    return [{'bidID': row[0], 'baseBid': row[1], 'highestBid': row[2], 'highestBidder': row[3], 'title': row[4], 'description': row[5], 'currentOwner': row[6]} for row in rows]
+
+def loadAllUserBids():
+    query = """
+        SELECT bidQueueID, userID, bidID, bidAmount, bidTime
+        FROM allBids
+        ORDER BY bidQueueID DESC
+    """
+    rows = execute_query(query, fetchall=True)
+    return [{'bidQueueID': row[0], 'userID': row[1], 'bidID': row[2], 'bidAmount': row[3], 'bidTime': row[4]} for row in rows]
 
 def checkForNewBids(fromWhatTime):
     query = """
-        SELECT * FROM bidQueue
-        WHERE startTime > ?
-        ORDER BY startTime DESC
+        SELECT b.bidID, b.baseBid, b.highestBid, b.highestBidder, i.title, i.description, i.currentOwner
+        FROM bidQueue b
+        JOIN inventory i ON b.itemID = i.itemID
+        WHERE b.bidID > ?
+        ORDER BY b.bidID DESC
     """
     rows = execute_query(query, (fromWhatTime,), fetchall=True)
-    return [{'id': row[0], 'title': row[1], 'description': row[2], 'startTime': row[3], 'baseBid': row[4], 'highestBid': row[5], 'highestBidder': row[6]} for row in rows]
+    return [{'bidID': row[0], 'baseBid': row[1], 'highestBid': row[2], 'highestBidder': row[3], 'title': row[4], 'description': row[5], 'currentOwner': row[6]} for row in rows]
 
 def getBidById(bidID):
-    query = "SELECT * FROM bidQueue WHERE id = ?"
+    query = "SELECT * FROM bidQueue WHERE bidID = ?"
     row = execute_query(query, (bidID,), fetchone=True)
     if row:
         return {
-            'id': row[0],
-            'title': row[1],
-            'description': row[2],
-            'startTime': row[3],
+            'bidID': row[0],
+            'itemID': row[1],
             'baseBid': row[4],
             'highestBid': row[5],
             'highestBidder': row[6]
@@ -91,7 +99,7 @@ def getBidById(bidID):
     return None
 
 def updateBid(bidID, amount, highestBidder):
-    query = "UPDATE bidQueue SET highestBid = ?, highestBidder = ? WHERE id = ?"
+    query = "UPDATE bidQueue SET highestBid = ?, highestBidder = ? WHERE bidID = ?"
     execute_query(query, (amount, highestBidder, bidID), commit=True)
 
 
@@ -109,12 +117,12 @@ def deductTokens(userID, amount):
     execute_query(query, (amount, amount, userID), commit=True)
 
 # All User Bids Management
-def addNewUserBid(userID, bidID, bidAmount, bidTime):
+def addNewUserBid(bidQueueID, userID, bidID, bidAmount, bidTime):
     query = """
-        INSERT INTO allBids (userID, bidID, bidAmount, bidTime) 
-        VALUES (?, ?, ?, ?)
+        INSERT INTO allBids (bidQueueID, userID, bidID, bidAmount, bidTime) 
+        VALUES (?, ?, ?, ?, ?)
     """
-    execute_query(query, (userID, bidID, bidAmount, bidTime), commit=True)
+    execute_query(query, (bidQueueID, userID, bidID, bidAmount, bidTime), commit=True)
 
 def updateUserBid(userID, bidID, bidAmount, bidTime):
     query = """
@@ -130,7 +138,7 @@ def addToInventory(itemID, title, description, currentOwner):
         INSERT INTO inventory (itemID, title, description, currentOwner) 
         VALUES (?, ?, ?, ?)
     """
-    execute_query(query, (itemID, title, description, currentOwner), commitLog=True)
+    execute_query(query, (itemID, title, description, currentOwner), commit=True)
 
 def addToBidQueue(bidID, itemID, baseBid):
     query = """

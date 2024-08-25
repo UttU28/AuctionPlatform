@@ -1,8 +1,14 @@
--- SELECT * FROM users;
--- SELECT * FROM bidQueue;
--- SELECT * FROM inventory;
--- SELECT * FROM allBids;
+SELECT * FROM users;
+SELECT * FROM bidQueue;
+SELECT * FROM inventory;
+SELECT * FROM allBids;
 -- SELECT * FROM SDV;
+
+-- SELECT b.bidID, b.baseBid, b.highestBid, b.highestBidder, i.title, i.description, i.currentOwner
+-- FROM bidQueue b
+-- JOIN inventory i ON b.itemID = i.itemID
+-- ORDER BY b.bidID DESC
+
 
 
 -- delete from inventory;
@@ -16,7 +22,6 @@
 
 -- delete from users;
 -- drop table users;
-
 -- SELECT COUNT(*) FROM SDV;
 -- SELECT COUNT(*) FROM SDV;
 -- SELECT COUNT(*) FROM SDV;

@@ -29,19 +29,19 @@
                 <p id="conversionMessage"></p>
             </div>
         </div>
-        
     </div>
 
     <div class="container">
         <div class="allBids">
             {% for bid in allBids %}
-                <div class="bidItem" id="bid-{{ bid.id }}">
+                <div class="bidItem" id="bid-{{ bid.bidID }}">
                     <h2>{{ bid.title }}</h2>
                     <p class="description">{{ bid.description }}</p>
-                    <p class="baseBid">Base Bid: ${{ bid.baseBid }}</p>
-                    <p class="highestBid">Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
-                    <input type="number" id="bidInput-{{ bid.id }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
-                    <button onclick="placeBid('{{ bid.id }}')">Place Bid</button>
+                    <p class="baseBid" id="baseBid-{{ bid.bidID }}">Base Bid: ${{ bid.baseBid }}</p>
+                    <p class="highestBid" id="highestBid-{{ bid.bidID }}">Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
+                    <input type="number" id="bidInput-{{ bid.bidID }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
+                    <button onclick="placeBid('{{ bid.bidID }}')">Place Bid</button>
+                    <p class="highestBidder" id="highestBider">{{ bid.highestBidder }}</p>
                 </div>
             {% endfor %}
         </div>
@@ -50,34 +50,38 @@
     <script>
         var lastLoadTimestamp = {{ lastLoad }};
         var isRequestInProgress = false;
-    
+
         function disableButtons() {
             $('button').prop('disabled', true);
         }
-    
+
         function enableButtons() {
             $('button').prop('disabled', false);
         }
-    
+
         function placeBid(bidId) {
             if (isRequestInProgress) return;
             var bidInput = document.getElementById('bidInput-' + bidId);
+            var baseBid = document.getElementById('baseBid-' + bidId).innerText;
+            var highestBid = document.getElementById('highestBid-' + bidId).innerText;
             var bidAmount = parseInt(bidInput.value, 10);
-    
+
             if (isNaN(bidAmount) || bidAmount <= 0) {
                 alert('Please enter a valid bid amount.');
                 return;
             }
-    
+
             isRequestInProgress = true;
             disableButtons();
-    
+
             $.ajax({
                 url: '/placeBid',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     bidId: bidId,
+                    baseBid: baseBid,
+                    highestBid: highestBid,
                     amount: bidAmount
                 }),
                 success: function(response) {
@@ -85,6 +89,7 @@
                         $('#credits').text(response.credits);
                         $('#tokens').text(response.tokens);
                         $('#tokensHold').text(response.tokensHold);
+                        // var highestBidder = $('#highestBidder').text(response);
                         var bidItem = $('#bid-' + bidId);
                         bidItem.find('.highestBid').text('Highest Bid: $' + bidAmount);
                         bidInput.value = '';
@@ -101,13 +106,13 @@
                 }
             });
         }
-    
+
         function checkForNewBids() {
             if (isRequestInProgress) return;
-    
+
             isRequestInProgress = true;
             disableButtons();
-    
+
             $.ajax({
                 url: '/checkNewBids',
                 method: 'GET',
@@ -118,14 +123,17 @@
                     if (response.newBids.length > 0) {
                         var container = $('.allBids');
                         response.newBids.forEach(function(bid) {
+                            var highestBidText = bid.highestBid !== null ? `$${bid.highestBid}` : 'No bids yet';
+                            var minBid = bid.highestBid !== null ? bid.highestBid + 1 : bid.baseBid + 1;
+                            
                             var bidHtml = `
-                                <div class="bidItem" id="bid-${bid.id}">
+                                <div class="bidItem" id="bid-${bid.bidID}">
                                     <h2>${bid.title}</h2>
                                     <p class="description">${bid.description}</p>
-                                    <p class="baseBid">Base Bid: $${bid.baseBid}</p>
-                                    <p class="highestBid">Highest Bid: $${bid.highestBid || 'No bids yet'}</p>
-                                    <input type="number" id="bidInput-${bid.id}" placeholder="Enter your bid" min="${(bid.highestBid || bid.baseBid) + 1}">
-                                    <button onclick="placeBid('${bid.id}')">Place Bid</button>
+                                    <p class="baseBid" id="baseBid-${bid.bidID}">Base Bid: $${bid.baseBid}</p>
+                                    <p class="highestBid" id="highestBid-${bid.bidID}">Highest Bid: ${highestBidText}</p>
+                                    <input type="number" id="bidInput-${bid.bidID}" placeholder="Enter your bid" min="${minBid}">
+                                    <button onclick="placeBid('${bid.bidID}')">Place Bid</button>
                                 </div>
                             `;
                             container.prepend(bidHtml);
@@ -142,41 +150,42 @@
                 }
             });
         }
-    
+
+
         function convertCredits() {
             if (isRequestInProgress) return;
-    
+
             var creditsInput = document.getElementById('creditsToConvert');
             var credits = parseInt(creditsInput.value, 10);
             var tokens = Math.floor(credits / 3);
-            var credits = tokens * 3;
-    
+            var creditsToConvert = tokens * 3;
+
             if (isNaN(credits) || credits <= 0) {
                 alert('Please enter a valid amount of credits.');
                 return;
             }
-    
+
             if (tokens <= 0) {
                 alert('You need at least 3 credits to convert to 1 token.');
                 return;
             }
-    
+
             isRequestInProgress = true;
             disableButtons();
-    
+
             $.ajax({
                 url: '/convertCreditsToTokens',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
-                    credits: credits,
+                    credits: creditsToConvert,
                     tokens: tokens
                 }),
                 success: function(response) {
                     if (response.success) {
                         $('#credits').text(response.newCredits);
                         $('#tokens').text(response.newTokens);
-                        $('#conversionMessage').text(`Successfully converted ${credits} credits to ${tokens} tokens.`);
+                        $('#conversionMessage').text(`Successfully converted ${creditsToConvert} credits to ${tokens} tokens.`);
                         document.getElementById('creditsToConvert').value = '';
                         document.getElementById('tokensToReceive').value = tokens;
                     } else {
@@ -192,27 +201,28 @@
                 }
             });
         }
-    
+
         function updateConversion() {
             var creditsInput = document.getElementById('creditsToConvert');
             var tokensResult = document.getElementById('tokensResult');
             var tokensInput = document.getElementById('tokensToReceive');
             var credits = parseInt(creditsInput.value, 10);
-    
+
             if (isNaN(credits) || credits <= 0) {
                 tokensResult.textContent = '0';
                 tokensInput.value = '0';
                 return;
             }
-    
+
             var tokens = Math.floor(credits / 3);
             tokensResult.textContent = tokens;
             tokensInput.value = tokens;
         }
-    
+
         document.getElementById('creditsToConvert').addEventListener('input', updateConversion);
-    
+
         setInterval(checkForNewBids, 10000);
+
     </script>
     
 </body>

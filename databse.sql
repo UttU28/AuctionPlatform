@@ -8,7 +8,7 @@ CREATE TABLE users (
     tokensHold INT NOT NULL DEFAULT 0
 );
 
--- Create item table
+-- Create inventory table
 CREATE TABLE inventory (
     itemID BIGINT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -30,12 +30,11 @@ CREATE TABLE bidQueue (
 
 -- Create allBids table
 CREATE TABLE allBids (
-    bidQueueID INT IDENTITY(1,1) PRIMARY KEY,
+    bidQueueID BIGINT PRIMARY KEY,
     userID VARCHAR(255) NOT NULL,
-    bidID INT NOT NULL,
+    bidID BIGINT NOT NULL,
     bidAmount INT NOT NULL,
     bidTime BIGINT NOT NULL,
     FOREIGN KEY (userID) REFERENCES users(userID),
     FOREIGN KEY (bidID) REFERENCES bidQueue(bidID)
 );
-

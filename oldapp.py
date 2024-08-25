@@ -23,8 +23,13 @@ def index():
     if 'user' in session:
         getAndSetSessionTokens()
         allBids = loadAllBids()
-        timeStamp = allBids[0]["startTime"]
-        return render_template("index.html", user=session['user'], userEmail=session['userID'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp)
+        allUserBids = loadAllUserBids()
+        currentTime = timeKyaHai()
+        print(allUserBids)
+        timeStamp0 = allBids[0]["bidID"] if allBids else currentTime
+        timeStamp1 = allUserBids[0]["bidQueueID"] if allUserBids else currentTime
+        # timeStamp1 = allUserBids[0]["bidID"]
+        return render_template("index.html", user=session['user'], userEmail=session['userID'], credits=session['credits'], tokens=session['tokens'], tokensHold=session['tokensHold'], allBids=allBids, lastLoad=timeStamp0)
     
     return redirect(url_for('login'))
 
@@ -75,11 +80,16 @@ def placeBid():
     userID = session['userID']
     bidID = data['bidId']
     bidAmount = data['amount']
-    bidTime = timeKyaHai()
+    baseBid = data['baseBid'].split("$")[-1].strip()
+    highestBid = data['highestBid'].split("$")[-1].strip()
+    currentTime = timeKyaHai()
 
-    bid = getBidById(bidID)
+    if "No bids" in highestBid: highestBid = int(baseBid)
+    else: highestBid = int(highestBid)
 
-    if bidAmount <= bid['highestBid']:
+    # bid = getBidById(bidID)
+
+    if bidAmount <= int(highestBid):
         return jsonify({'success': False, 'message': 'Bid must be higher than the current highest bid.'})
     if bidAmount > userTokens:
         return jsonify({'success': False, 'message': 'Not enough tokens.'})
@@ -89,9 +99,11 @@ def placeBid():
     updateBid(bidID, bidAmount, session['userID'])
     deductTokens(session['userID'], newAmount)
     if prevBidAmount:
-        updateUserBid(userID, bidID, bidAmount, bidTime)
+        updateUserBid(userID, bidID, bidAmount, currentTime)
+        print("Updated Current")
     else:
-        addNewUserBid(userID, bidID, bidAmount, bidTime)
+        addNewUserBid(currentTime, userID, bidID, bidAmount, currentTime)
+        print("Created New")
 
     # Update session variables
     getAndSetSessionTokens()
@@ -112,7 +124,7 @@ def placeBid():
 def checkNewBids():
     timestamp = request.args.get('timestamp', type=int)
     newBids = checkForNewBids(timestamp)
-    if newBids: newTimestamp = newBids[0]["startTime"]
+    if newBids: newTimestamp = newBids[0]["bidID"]
     else: newTimestamp = timestamp
     return jsonify({'newBids': newBids, 'newTimestamp': newTimestamp})
 
