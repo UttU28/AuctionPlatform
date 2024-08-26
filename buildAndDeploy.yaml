@@ -1,0 +1,39 @@
+parameters:
+  - name: containerRegistry
+    type: string
+  - name: acrName
+    type: string
+  - name: imageName
+    type: string
+  - name: imageTag
+    type: string
+  - name: dockerfilePath
+    type: string
+  - name: artifactName
+    type: string
+  - name: imageRepository
+    type: string
+  - name: gitRepoUrl
+    type: string
+  - name: gitBranch
+    type: string
+    default: 'main'
+
+steps:  # This should be at the top level, not within the parameters section.
+  - task: Bash@3
+    displayName: 'Clone Git Repository'
+    inputs:
+      targetType: 'inline'
+      script: |
+        git clone --branch ${{ parameters.gitBranch }} ${{ parameters.gitRepoUrl }} repo
+
+  - task: Docker@2
+    displayName: 'Build Docker Image'
+    inputs:
+      containerRegistry: ${{ parameters.containerRegistry }}
+      repository: ${{ parameters.imageName }}
+      # command: build
+      command: buildAndPush
+      Dockerfile: '${{ parameters.dockerfilePath }}'
+      buildContext: 'repo'
+      tags: ${{ parameters.imageTag }}

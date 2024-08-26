@@ -1,0 +1,40 @@
+# Ignore Python bytecode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment directories
+venv/
+env/
+
+# Ignore .env file for security reasons (if not using it)
+.env
+
+# Ignore Dockerfile and .dockerignore itself (if not needed inside the container)
+Dockerfile
+.dockerignore
+
+# Ignore version control directories
+.git/
+.gitignore
+
+# Ignore IDE and editor directories
+.vscode/
+.idea/
+*.swp
+
+# Ignore other unnecessary files
+*.log
+*.md
+*.tmp
+*.pdf
+*.yml
+*.tf
+
+allResume/
+.gitignore
+deploy.sh
+
+*.sql
+resume.py

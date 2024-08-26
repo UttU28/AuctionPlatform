@@ -1,0 +1,93 @@
+trigger:
+- main
+# - none
+
+variables:
+  azureSubscription: 'dicePipeline'
+  containerRegistry: 'dockerSC'
+  imageTag: 'latest'
+  dockerfilePath: '$(Build.SourcesDirectory)/repo/Dockerfile'
+  gitRepoUrl: 'https://github.com/UttU28/AuctionPlatform.git'
+  gitBranch: 'main'
+
+jobs:
+- job: Checkout
+  displayName: 'Checkout Code WEBAPP'
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+    - checkout: self
+
+- job: BuildAndDeploying
+  displayName: 'Build and Deploy'
+  dependsOn: Checkout
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: AzureKeyVault@2
+    displayName: 'Get Secrets from Key Vault'
+    inputs:
+      azureSubscription: '$(azureSubscription)'
+      KeyVaultName: 'thisdicekeyvault'
+      SecretsFilter: '*'
+  - template: buildAndDeploy.yaml
+    parameters:
+      containerRegistry: '$(containerRegistry)'
+      acrName: '$(acrName)'
+      imageName: 'auctionplatform'
+      imageTag: '$(imageTag)'
+      dockerfilePath: '$(dockerfilePath)'
+      artifactName: 'auctionplatform_ARTIFACT'
+      imageRepository: '$(acrName).azurecr.io/auctionplatform'
+      gitRepoUrl: '$(gitRepoUrl)'
+      gitBranch: '$(gitBranch)'
+
+- job: Terraform
+  displayName: 'Deploy Terraform Infrastructure'
+  # dependsOn: Checkout
+  dependsOn: BuildAndDeploying
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: AzureKeyVault@2
+    displayName: 'Get Secrets from Key Vault'
+    inputs:
+      azureSubscription: '$(azureSubscription)'
+      KeyVaultName: 'thisdicekeyvault'
+      SecretsFilter: '*'
+  - template: terraformTasks.yaml
+    parameters:
+      workingDirectory: 'tfScripts'
+
+
+- job: EnableIngressOnApp
+  displayName: 'Enable Ingress On App'
+  dependsOn: Terraform
+  # dependsOn: Checkout
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - task: AzureKeyVault@2
+    displayName: 'Get Secrets from Key Vault'
+    inputs:
+      azureSubscription: '$(azureSubscription)'
+      KeyVaultName: 'thisdicekeyvault'
+      SecretsFilter: '*'
+  - task: AzureCLI@2
+    displayName: 'Enable it man'
+    inputs: 
+      azureSubscription: $(azureSubscription)
+      scriptType: bash
+      addSpnToEnvironment: true
+      scriptLocation: inlineScript
+      inlineScript: |
+
+        az containerapp ingress enable -n 'auctionplatform' -g '$(dicesaralapply-rg)' --type external --allow-insecure --target-port 50505 --transport auto
+
+        CONTAINER_APP_URL=$(az containerapp show \
+          --resource-group $(dicesaralapply-rg) \
+          --name auctionplatform \
+          --query "properties.configuration.ingress.fqdn" \
+          --output tsv)
+
+        echo "##vso[task.setvariable variable=CONTAINER_APP_URL]$CONTAINER_APP_URL"
