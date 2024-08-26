@@ -3,3 +3,6 @@ flask-bcrypt
 urllib3
 pyodbc
 email-validator
+python-dotenv
+Werkzeug
+gunicorn
