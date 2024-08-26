@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +9,26 @@
     <title>Auction</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
+
 <body>
     <div class="text">Welcome {{ user }}</div>
-    <div class="text">{{ userEmail }}</div>
+    <div class="text"><a href="{{ url_for('admin') }}" class="admin">Manage Inventory: {{ userEmail }}</a></div>
+    
 
     <div class="container">
         <div class="walletDiv">
-            <div class="credits"><div class="text">CREDITS</div><div class="value" id="credits">{{ credits }}</div></div>
-            <div class="tokens"><div class="text">TOKENS</div><div class="value" id="tokens">{{ tokens }}</div></div>
-            <div class="tokensHold"><div class="text">TKn HOLD</div><div class="value" id="tokensHold">{{ tokensHold }}</div></div>
+            <div class="credits">
+                <div class="text">CREDITS</div>
+                <div class="value" id="credits">{{ credits }}</div>
+            </div>
+            <div class="tokens">
+                <div class="text">TOKENS</div>
+                <div class="value" id="tokens">{{ tokens }}</div>
+            </div>
+            <div class="tokensHold">
+                <div class="text">TKn HOLD</div>
+                <div class="value" id="tokensHold">{{ tokensHold }}</div>
+            </div>
         </div>
 
         <div class="convertCreditsToTokens">
@@ -34,34 +46,40 @@
     <div class="container">
         <div class="allBids">
             {% for bid in allBids %}
-                <div class="bidItem" id="bid-{{ bid.bidID }}">
-                    <h2>{{ bid.title }}</h2>
-                    <p class="description">{{ bid.description }}</p>
-                    <p class="baseBid" id="baseBid-{{ bid.bidID }}">Base Bid: ${{ bid.baseBid }}</p>
-                    <p class="highestBid" id="highestBid-{{ bid.bidID }}">Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
-                    <input type="number" id="bidInput-{{ bid.bidID }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
-                    <button onclick="placeBid('{{ bid.bidID }}')">Place Bid</button>
-                    <p class="highestBidder" id="highestBider">{{ bid.highestBidder }}</p>
-                    
-                    <!-- Container for user bids -->
-                    <div class="userBids" id="userBids-{{ bid.bidID }}">
-                        {% if bid.bidID in allUserBids %}
-                            <h3>User Bids:</h3>
-                            <ul>
-                                {% for userBid in allUserBids[bid.bidID] %}
-                                    <li>
-                                        User: {{ userBid.userID }} - Amount: ${{ userBid.bidAmount }} (Bid Time: {{ userBid.bidTime }})
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p>No bids yet for this item.</p>
-                        {% endif %}
-                    </div>
+            <div class="bidItem" id="bid-{{ bid.bidID }}">
+                <h2>{{ bid.title }}</h2>
+                <p class="description">{{ bid.description }}</p>
+                <p class="baseBid" id="baseBid-{{ bid.bidID }}">Base Bid: ${{ bid.baseBid }}</p>
+                <p class="highestBid" id="highestBid-{{ bid.bidID }}">Highest Bid: ${{ bid.highestBid if bid.highestBid else 'No bids yet' }}</p>
+                <p class="highestBidder" id="highestBidder-{{ bid.bidID }}">Highest Bidder: {{ bid.highestBidder if bid.highestBidder else 'None' }}</p>
+                <input type="number" id="bidInput-{{ bid.bidID }}" placeholder="Enter your bid" min="{{ bid.highestBid + 1 if bid.highestBid else bid.baseBid + 1 }}">
+                <button onclick="placeBid('{{ bid.bidID }}')">Place Bid</button>
+
+                <!-- Progress Bar -->
+                <div class="progressBarContainer">
+                    <div class="progressBar" id="progressBar-{{ bid.bidID }}"></div>
                 </div>
+
+                <!-- Container for user bids -->
+                <div class="userBids" id="userBids-{{ bid.bidID }}">
+                    {% if bid.bidID in allUserBids %}
+                    <h3>User Bids:</h3>
+                    <ul>
+                        {% for userBid in allUserBids[bid.bidID] %}
+                        <li>
+                            User: {{ userBid.userID }} - Amount: ${{ userBid.bidAmount }} (Bid Time: {{ userBid.bidTime }})
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>No bids yet for this item.</p>
+                    {% endif %}
+                </div>
+            </div>
             {% endfor %}
         </div>
     </div>
+    
 
     <script>
         var lastLoadTimestamp0 = {{ lastLoad0 }};
@@ -101,12 +119,9 @@
                     highestBid: highestBid,
                     amount: bidAmount
                 }),
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
-                        $('#credits').text(response.credits);
-                        $('#tokens').text(response.tokens);
-                        $('#tokensHold').text(response.tokensHold);
-                        // var highestBidder = $('#highestBidder').text(response);
+                        setCreditsAndTokens(response.credits, response.tokens, response.tokensHold);
                         var bidItem = $('#bid-' + bidId);
                         bidItem.find('.highestBid').text('Highest Bid: $' + bidAmount);
                         bidInput.value = '';
@@ -114,10 +129,10 @@
                         alert(response.message);
                     }
                 },
-                error: function() {
+                error: function () {
                     alert('An error occurred. Please try again.');
                 },
-                complete: function() {
+                complete: function () {
                     isRequestInProgress = false;
                     enableButtons();
                 }
@@ -128,6 +143,8 @@
             if (isRequestInProgress) return;
             var tempUserBids = {{ allUserBids | tojson | safe }};
             var tempUserBidsJson = JSON.stringify(tempUserBids);
+            var tempBids = {{ allBids | tojson | safe }};
+            var tempBidsJson = JSON.stringify(tempBids);
 
             isRequestInProgress = true;
             disableButtons();
@@ -138,12 +155,14 @@
                 data: {
                     timestamp0: lastLoadTimestamp0,
                     timestamp1: lastLoadTimestamp1,
-                    tempUserBids: tempUserBidsJson
+                    tempUserBids: tempUserBidsJson,
+                    tempBids: tempBidsJson
                 },
-                success: function(response) {
+                success: function (response) {
+                    setCreditsAndTokens(response.credits, response.tokens, response.tokensHold);
                     if (response.newBids.length > 0) {
                         var container = $('.allBids');
-                        response.newBids.forEach(function(bid) {
+                        response.newBids.forEach(function (bid) {
                             var highestBidText = bid.highestBid !== null ? '$' + bid.highestBid : 'No bids yet';
                             var minBid = bid.highestBid !== null ? bid.highestBid + 1 : bid.baseBid + 1;
 
@@ -157,9 +176,12 @@
                                         <p class="description">${bid.description}</p>
                                         <p class="baseBid" id="baseBid-${bid.bidID}">Base Bid: $${bid.baseBid}</p>
                                         <p class="highestBid" id="highestBid-${bid.bidID}">Highest Bid: ${highestBidText}</p>
-                                        <input type="number" id="bidInput-${bid.bidID}" placeholder="Enter your bid" min="${minBid}">
-                                        <button onclick="placeBid('${bid.bidID}')">Place Bid</button>
+                                        <input type="number" id="bidInput-${bid.bidID}" placeholder="Enter your bid" min="${minBid}"}>
+                                        <button onclick="placeBid('${bid.bidID}')" ${bid.onAuction ? '' : 'disabled'}>Place Bid</button>
                                         <p class="highestBidder" id="highestBidder-${bid.bidID}">Highest Bidder: ${bid.highestBidder || 'None'}</p>
+                                        <div class="progressBarContainer">
+                                            <div class="progressBar" id="progressBar-${bid.bidID}"></div>
+                                        </div>
                                         <div class="userBids" id="userBids-${bid.bidID}"></div>
                                     </div>
                                 `;
@@ -170,15 +192,16 @@
                             // Update the highest bid and bidder information
                             bidItem.find('.highestBid').text('Highest Bid: $' + bid.highestBid);
                             bidItem.find('.highestBidder').text('Highest Bidder: ' + bid.highestBidder || 'None');
+                            bidItem.find('button').prop('disabled', !bid.onAuction);
                         });
 
                         lastLoadTimestamp0 = response.newTimestamp0;
                     }
-                                        
+
                     // Iterate over each bidID in the response
                     for (var bidID in response.allUserBids) {
                         var userBidsHtml = '<h3>User Bids:</h3><ul>';
-                        response.allUserBids[bidID].forEach(function(userBid) {
+                        response.allUserBids[bidID].forEach(function (userBid) {
                             userBidsHtml += `<li>User: ${userBid.userID} - Amount: $${userBid.bidAmount} (Bid Time: ${userBid.bidTime})</li>`;
                         });
                         userBidsHtml += '</ul>';
@@ -193,16 +216,21 @@
 
                     lastLoadTimestamp1 = response.newTimestamp1;
                 },
-                error: function() {
+                error: function () {
                     console.error('Failed to check for new bids.');
                 },
-                complete: function() {
+                complete: function () {
                     isRequestInProgress = false;
                     enableButtons();
                 }
             });
         }
 
+        function setCreditsAndTokens(credits, tokens, tokensHold) {
+            $('#credits').text(credits);
+            $('#tokens').text(tokens);
+            $('#tokensHold').text(tokensHold);
+        }
 
         function convertCredits() {
             if (isRequestInProgress) return;
@@ -233,10 +261,9 @@
                     credits: creditsToConvert,
                     tokens: tokens
                 }),
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
-                        $('#credits').text(response.newCredits);
-                        $('#tokens').text(response.newTokens);
+                        setCreditsAndTokens(response.newCredits, response.newTokens, response.newTokensHold);
                         $('#conversionMessage').text(`Successfully converted ${creditsToConvert} credits to ${tokens} tokens.`);
                         document.getElementById('creditsToConvert').value = '';
                         document.getElementById('tokensToReceive').value = tokens;
@@ -244,10 +271,10 @@
                         $('#conversionMessage').text(response.message);
                     }
                 },
-                error: function() {
+                error: function () {
                     $('#conversionMessage').text('An error occurred. Please try again.');
                 },
-                complete: function() {
+                complete: function () {
                     isRequestInProgress = false;
                     enableButtons();
                 }
@@ -275,7 +302,56 @@
 
         setInterval(checkForNewBids, 10000);
 
+        function disableOldBids() {
+            var now = Math.floor(Date.now() / 1000);
+            $('.allBids .bidItem').each(function () {
+                var bidId = $(this).attr('id').replace('bid-', ''); // Extract bidID
+                var bidTime = parseInt(bidId, 10); // Convert to integer (assuming bidID represents timestamp)
+
+                if (isNaN(bidTime)) return; // Skip if bidTime is not a valid number
+
+                var timeInSeconds = 60; // 1 minute in seconds
+
+                if (now - bidTime > timeInSeconds) {
+                    $(this).addClass('ended');
+                    $(this).find('input[type="number"]').prop('disabled', true);
+                    $(this).find('button').remove();
+                    $(this).find('.endedMessage').remove(); // Remove any previous messages
+                    $(this).append('<p class="endedMessage">BID ENDED</p>');
+                }
+            });
+        }
+
+        function updateProgressBars() {
+            var now = Math.floor(Date.now() / 1000);
+            $('.allBids .bidItem').each(function () {
+                var bidId = $(this).attr('id').replace('bid-', ''); // Extract bidID
+                var bidTime = parseInt(bidId, 10); // Convert to integer (assuming bidID represents timestamp)
+                var progressBar = $(this).find('.progressBar');
+
+                if (isNaN(bidTime)) return; // Skip if bidTime is not a valid number
+
+                var elapsedTime = now - bidTime;
+                var timeInSeconds = 60; // 1 minute in seconds
+
+                if (elapsedTime <= timeInSeconds) {
+                    var percentage = (elapsedTime / timeInSeconds) * 100;
+                    progressBar.css('width', percentage + '%');
+                } else {
+                    progressBar.css('width', '100%');
+                }
+            });
+        }
+
+        disableOldBids();
+        updateProgressBars();
+
+        setInterval(function () {
+            disableOldBids();
+            updateProgressBars();
+        }, 1000);
     </script>
-    
+
 </body>
+
 </html>

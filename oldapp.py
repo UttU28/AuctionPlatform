@@ -44,6 +44,8 @@ def index():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
+    invData = loadInventoryFor(session['userID'])
+    print(invData)
     if request.method == 'POST':
         title = request.form['title']
         description = request.form['description']
@@ -53,7 +55,8 @@ def admin():
         addToBidQueue(currentTime, currentTime, baseBid)
         return redirect(url_for('admin'))
     
-    return render_template('admin.html')
+    return render_template('admin.html', invData=invData)
+
 
 @app.route('/convertCreditsToTokens', methods=['POST'])
 def convertCreditsToTokens():
@@ -70,12 +73,14 @@ def convertCreditsToTokens():
 
     newCredits = session['credits'] - credits 
     newTokens = session['tokens'] + tokens 
+    newTokensHold = session['tokensHold'] 
     updateCreditsAndTokens(session['userID'], newCredits, newTokens)
 
     return jsonify({
         'success': True,
         'newCredits': newCredits,
         'newTokens': newTokens,
+        'newTokensHold': newTokensHold,
     })
 
 @app.route('/placeBid', methods=['POST'])
@@ -173,12 +178,19 @@ def checkNewBids():
     print(1,1,1, mergedBids)
     mergedBids = removeDuplicatesAndSort(mergedBids)
     print(mergedBids)
+    getAndSetSessionTokens()
+    credits = session['credits']
+    tokens = session['tokens']
+    tokensHold = session['tokensHold']
 
     return jsonify({
         'newBids': newBids,
         'allUserBids': mergedBids,
         'newTimestamp0': newTimestamp0,
-        'newTimestamp1': newTimestamp1
+        'newTimestamp1': newTimestamp1,
+        'credits': credits,
+        'tokens': tokens,
+        'tokensHold': tokensHold,
     })
 # User Authentication
 @app.route('/register', methods=['GET', 'POST'])

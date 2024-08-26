@@ -102,9 +102,10 @@ def getBidById(bidID):
         return {
             'bidID': row[0],
             'itemID': row[1],
-            'baseBid': row[4],
-            'highestBid': row[5],
-            'highestBidder': row[6]
+            'baseBid': row[2],
+            'highestBid': row[3],
+            'highestBidder': row[4],
+            'isEnded': row[5],
         }
     return None
 
@@ -150,11 +151,18 @@ def addToInventory(itemID, title, description, currentOwner):
     """
     execute_query(query, (itemID, title, description, currentOwner), commit=True)
 
-def leadInventoryFor():
-    pass
+def loadInventoryFor(userID):
+    query = """
+        SELECT * FROM inventory
+        WHERE currentOwner = ?
+        ORDER BY itemID DESC
+    """
+    rows = execute_query(query, (userID,), fetchall=True)
+    return [{'itemID': row[0], 'title': row[1], 'description': row[2], 'currentOwner': row[3]} for row in rows]
+
 def addToBidQueue(bidID, itemID, baseBid):
     query = """
-        INSERT INTO bidQueue (bidID, itemID, baseBid) 
-        VALUES (?, ?, ?)
+        INSERT INTO bidQueue (bidID, itemID, baseBid, isEnded) 
+        VALUES (?, ?, ?, 0)
     """
     execute_query(query, (bidID, itemID, baseBid), commit=True)

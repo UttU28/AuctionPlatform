@@ -24,6 +24,7 @@ CREATE TABLE bidQueue (
     baseBid INT NOT NULL,
     highestBid INT DEFAULT 0,
     highestBidder VARCHAR(255),
+    isEnded BIT NOT NULL,
     FOREIGN KEY (itemID) REFERENCES inventory(itemID),
     FOREIGN KEY (highestBidder) REFERENCES users(userID)
 );

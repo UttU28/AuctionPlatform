@@ -33,6 +33,7 @@ ul {
 
 a {
   text-decoration: none;
+  color: aqua;
 }
 
 /* Body Styles */
@@ -218,4 +219,42 @@ button:disabled {
 
 #conversionResult span {
   font-weight: bold;
+}
+
+/* Bid Item Ended */
+.bidItem.ended {
+  background-color: #f8d7da; /* Light red background */
+  border-color: #f5c6cb; /* Light red border */
+  color: #721c24; /* Dark red text */
+}
+
+.bidItem.ended .highestBid,
+.bidItem.ended .highestBidder {
+  color: #721c24; /* Dark red text */
+}
+
+.bidItem.ended p {
+  margin: 0;
+  font-weight: bold;
+}
+
+.bidItem .endedMessage {
+  color: #721c24; /* Dark red text */
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+/* Progress Bar Styles */
+.progressBarContainer {
+  background-color: #ddd;
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.progressBar {
+  background-color: #4caf50;
+  height: 20px;
+  width: 0;
+  transition: width 1s linear;
 }

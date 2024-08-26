@@ -9,6 +9,7 @@
 </head>
 <body>
     <div class="container">
+        <div class="text"><a href="{{ url_for('index') }}" class="">Go Home</a></div>
         <h1>Admin Form</h1>
         <form action="{{ url_for('admin') }}" method="POST">
             <label for="title">Title:</label>
@@ -17,9 +18,20 @@
             <textarea id="description" name="description" required></textarea>
             <label for="baseBid">Base Bid:</label>
             <input type="number" id="baseBid" name="baseBid" required>
-
             <button type="submit">Submit</button>
         </form>
+
+        <!-- Inventory Section -->
+        <h2>Your Inventory</h2>
+        <div class="inventory">
+            {% for item in invData %}
+            <div class="card">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+                <small>Owner: {{ item.currentOwner }}</small>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </body>
 </html>
