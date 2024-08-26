@@ -11,7 +11,7 @@ class AzureSQLConfig(Config):
     databaseUsername='iAmRoot'
     databasePassword='Qwerty@213'
     connectionString = (
-        f"Driver={{ODBC Driver 18 for SQL Server}};"
+        f"Driver={{ODBC Driver 17 for SQL Server}};"
         f"Server=tcp:{databaseServer},1433;"
         f"Database={databaseName};"
         f"Uid={databaseUsername};"
